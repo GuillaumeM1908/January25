@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smelter Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h2 {
+            margin-top: 20px;
+        }
+        #fileInput {
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Smelter Dashboard</h1>
+    <p>Upload your JSON file to generate the dashboard:</p>
+    <input type="file" id="fileInput" accept=".json">
+
+    <!-- Chart containers -->
+    <div id="riskLevelChart" class="chart-container">
+        <h2>1. Smelter Risk Level Distribution</h2>
+        <div id="smelterRiskPie"></div>
+    </div>
+
+    <div id="countryChart" class="chart-container">
+        <h2>2. Smelter Country Distribution</h2>
+        <div id="countryHeatmap"></div>
+    </div>
+
+    <div id="certificationChart" class="chart-container">
+        <h2>3. Conflict-Free Certification Status</h2>
+        <div id="certificationBar"></div>
+    </div>
+
+    <div id="metalChart" class="chart-container">
+        <h2>4. Smelter Metal Type Distribution</h2>
+        <div id="metalBar"></div>
+    </div>
+
+    <div id="supplierChart" class="chart-container">
+        <h2>5. Supplier Contribution to Smelters</h2>
+        <div id="supplierTreemap"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById("fileInput");
+        fileInput.addEventListener("change", handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const jsonData = JSON.parse(e.target.result);
+                    generateDashboard(jsonData);
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function generateDashboard(data) {
+            // 1. Smelter Risk Level Distribution
+            const riskLevels = {};
+            data.forEach(row => {
+                const risk = row["Smelter Risk Level"] || "Unknown";
+                riskLevels[risk] = (riskLevels[risk] || 0) + 1;
+            });
+            const riskKeys = Object.keys(riskLevels);
+            const riskValues = Object.values(riskLevels);
+            Plotly.newPlot("smelterRiskPie", [{
+                labels: riskKeys,
+                values: riskValues,
+                type: 'pie'
+            }], {title: 'Smelter Risk Level Distribution'});
+
+            // 2. Smelter Country Distribution
+            const countryCounts = {};
+            data.forEach(row => {
+                const country = row["Country"] || "Unknown";
+                countryCounts[country] = (countryCounts[country] || 0) + 1;
+            });
+            const countryKeys = Object.keys(countryCounts);
+            const countryValues = Object.values(countryCounts);
+            Plotly.newPlot("countryHeatmap", [{
+                type: "choropleth",
+                locationmode: "country names",
+                locations: countryKeys,
+                z: countryValues,
+                colorscale: "Blues"
+            }], {title: 'Smelter Country Distribution'});
+
+            // 3. Conflict-Free Certification Status
+            const certificationCounts = {};
+            data.forEach(row => {
+                const status = row["Certified Conflict Free?"] || "Unknown";
+                certificationCounts[status] = (certificationCounts[status] || 0) + 1;
+            });
+            const certKeys = Object.keys(certificationCounts);
+            const certValues = Object.values(certificationCounts);
+            Plotly.newPlot("certificationBar", [{
+                x: certKeys,
+                y: certValues,
+                type: 'bar'
+            }], {title: 'Conflict-Free Certification Status'});
+
+            // 4. Smelter Metal Type Distribution
+            const metalCounts = {};
+            data.forEach(row => {
+                const metal = row["Metal"] || "Unknown";
+                metalCounts[metal] = (metalCounts[metal] || 0) + 1;
+            });
+            const metalKeys = Object.keys(metalCounts);
+            const metalValues = Object.values(metalCounts);
+            Plotly.newPlot("metalBar", [{
+                x: metalKeys,
+                y: metalValues,
+                type: 'bar'
+            }], {title: 'Smelter Metal Type Distribution'});
+
+            // 5. Supplier Contribution to Smelters
+            const supplierCounts = {};
+            data.forEach(row => {
+                const supplier = row["Supplier Name"] || "Unknown";
+                supplierCounts[supplier] = (supplierCounts[supplier] || 0) + 1;
+            });
+            const supplierKeys = Object.keys(supplierCounts);
+            const supplierValues = Object.values(supplierCounts);
+            Plotly.newPlot("supplierTreemap", [{
+                type: "treemap",
+                labels: supplierKeys,
+                parents: Array(supplierKeys.length).fill(""),
+                values: supplierValues
+            }], {title: 'Supplier Contribution to Smelters'});
+        }
+    </script>
+</body>
+</html>
